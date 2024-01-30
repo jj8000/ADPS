@@ -1,0 +1,118 @@
+---
+title: "ADPS 2023Z --- Laboratorium 2 (rozwiązania)"
+author: "Bartolini Bartłomiej herbu Zielona Pietruszka"
+output:
+  pdf_document:
+    latex_engine: xelatex
+  html_notebook: default
+  html_document: default
+---
+
+```{r, echo=FALSE}
+pdf.options(encoding='ISOLatin2')
+```
+
+# Zadanie 1 (1 pkt)
+
+## Treść zadania
+
+Rozkład Poissona jest często używany do modelowania ruchu ulicznego (o małym natężeniu). Plik skrety.txt zawiera liczby pojazdów skręcających na pewnym skrzyżowaniu w prawo w przeciągu trzystu 3-minutowych przedziałów czasu (dane zostały zebrane o różnych porach dnia).
+
+* Wczytaj dane za pomocą komendy scan('skrety.txt').
+
+* Dopasuj do danych rozkład Poissona, tj. wyestymuj parametr $\lambda$ rozkładu Poissona.
+
+* Metodą bootstrapu nieparametrycznego oszacuj odchylenie standardowe estymatora parametru $\lambda$.
+
+* Sprawdź i opisz zgodność rozkładu o wyestymowanym parametrze $\lambda$ z zarejestrowanymi danymi porównując graficznie empiryczną i teoretyczną funkcję prawdopodobieństwa. Użyj funkcji table() i\ dpois() analogicznie jak w przykładzie 4 laboratorium 1.
+
+## Rozwiązanie
+
+
+Wczytanie danych:
+```{r}
+traffic_data =  scan('skrety.txt')
+```
+
+Estymacja parametru $\lambda$:
+```{r}
+est_lambda = mean(traffic_data)
+```
+
+
+Wyznaczenie odchylenia standardowego estymatora metodą bootstrapu nieparametrycznego:
+
+```{r}
+K = 1000
+bootstrap_lambda = replicate(K, {
+  boot_dane = sample(traffic_data, replace = T)
+  return(mean(boot_dane))
+})
+sd_est_lambda = sd(bootstrap_lambda)
+```
+
+Odchylenie standardowe estymatora parametru $\lambda$ wynosi `r round(sd_est_lambda, 4)`.
+
+***
+
+# Zadanie 2 (1 pkt)
+
+## Treść zadania
+
+* Dla wybranej jednej spółki notowanej na GPW oblicz wartości procentowych zmian najwyższych cen w\ dniu (high) w ciągu ostatniego roku i wykreśl ich histogram.
+
+* Wyestymuj wartość średnią oraz wariancję procentowych zmian najwyższych cen w dniu dla wybranej spółki.
+
+* Na podstawie histogramu i wykresu funkcji gęstości prawdopodobieństwa wyznaczonej dla wyestymowanych parametrów (wartość średnia i wariancja) zweryfikuj zgrubnie, czy możemy przyjąć, że procentowe zmiany najwyższych cen w dniu mają rozkład normalny.
+
+* Zakładając, że zmiany najwyższych cen w dniu mają rozkład normalny wyznacz 90%, 95% i 99% przedziały ufności dla wartości średniej i wariancji procentowych zmian najwyższych cen w dniu dla wybranej spółki. Przeanalizuj wyniki uzyskane dla różnych przedziałów ufności.
+
+## Rozwiązanie
+
+tu umieść swoje rozwiązanie
+
+***
+
+# Zadanie 3 (1,5 pkt.)
+
+## Treść zadania
+
+Rzucona pinezka upada ostrzem do dołu lub do góry. Doświadczenie to można opisać rozkładem Bernoulliego z parametrem $p$ będącym prawdopodobieństwem tego, że pinezka upadnie ostrzem do góry. 
+
+Rozkład parametru $p$ można opisać rozkładem beta o parametrach $\alpha$ i $\beta$. Wartość średnia i wariancja w\ rozkładzie beta zależą od parametrów rozkładu w następujący sposób:
+$$ \mathbb{E}X = \frac{\alpha}{\alpha + \beta}, \qquad \mathbb{V}X = \frac{\alpha\beta}{(\alpha + \beta)^2(\alpha + \beta + 1)}, \qquad dominanta = \frac{\alpha - 1}{\alpha + \beta - 2}.$$
+
+* Na podstawie przypuszczanej (a priori) wartości oczekiwanej parametru $p$ zaproponuj wartości parametrów $\alpha$ i $\beta$ rozkładu a priori parametru $p$. Narysuj rozkład a priori parametru $p$ (wykorzystaj funkcję dbeta()).
+
+* Rzuć pinezką 20 razy i zanotuj wyniki kolejnych rzutów (1 - pinezka upada ostrzem do góry, 0 - pinezka upada ostrzem do dołu). Wyznacz i narysuj rozkład a posteriori parametru $p$ oraz oblicz wartość bayesowskiego estymatora $\hat{p}$. W\ rozważanym przypadku rozkład aposteriori parametru $p$ jest również rozkładem beta o parametrach:
+$$ \alpha_{\textrm{post}} = \alpha_{\textrm{prior}} + \sum_{i=1}^n x_i, \qquad \beta_{\textrm{post}} = \beta_{\textrm{prior}} + n - \sum_{i=1}^n x_i,\qquad x_i\in\{0,1\}.$$
+
+* Rzuć pinezką jeszcze 20 razy i zanotuj wyniki. Wyznacz i narysuj rozkład a posteriori oparty na wszystkich 40 rzutach oraz oblicz wartość bayesowskiego estymatora $\hat{p}$ w tym przypadku. Porównaj wyniki z wynikami uzyskanymi po pierwszych 20 rzutach.
+
+* Korzystając ze wzoru na wariancję rozkładu Beta wyznacz i porównaj wariancje rozkładów a priori, a\ posteriori po 20 rzutach i a posteriori po 40 rzutach.
+
+## Rozwiązanie
+
+tu umieść swoje rozwiązanie
+
+***
+
+# Zadanie 4 (1,5 pkt.)
+
+## Treść zadania
+
+Plik fotony.txt zawiera odstępy między chwilami rejestracji kolejnych fotonów promieniowania gamma wykonywanymi za pomocą teleskopu kosmicznego Comptona (CGRO) w roku 1991.
+
+* Wczytaj dane za pomocą komendy scan('fotony.txt')
+
+* Metodą momentów oraz metodą największej wiarygodności wyznacz estymaty parametrów rozkładu gamma odpowiadające zarejestrowanym danym. Porównaj wyniki uzyskane dla obu metod.
+
+* Narysuj na jednym wykresie histogram odstępów oraz funkcje gęstości rozkładu gamma o parametrach wyestymowanych za pomocą obu metod.
+
+* Metodą bootstrapu parametrycznego wyznacz dla obu metod (momentów oraz największej wiarygodności) odchylenia standardowe estymatorów parametrów rozkładu gamma ($\alpha$ i $\beta$) oraz ich przedziały ufności na poziomie ufności 95%. Porównaj wyniki uzyskane dla obu metod.
+
+## Rozwiązanie
+
+tu umieść swoje rozwiązanie
+
+***
