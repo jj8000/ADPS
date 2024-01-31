@@ -53,6 +53,20 @@ sd_est_lambda = sd(bootstrap_lambda)
 
 Odchylenie standardowe estymatora parametru $\lambda$ wynosi `r round(sd_est_lambda, 4)`.
 
+
+
+Wykresy empirycznej i teoretycznej funkcji prawdopodobieństwa:
+
+```{r}
+F_emp = table(traffic_data)
+F_teor = dpois(as.numeric(names(F_emp)), lambda = est_lambda) 
+plot(0:12, F_teor)
+points(F_emp / length(traffic_data))
+
+
+```
+
+
 ***
 
 # Zadanie 2 (1 pkt)
