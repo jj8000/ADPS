@@ -60,8 +60,14 @@ Wykresy empirycznej i teoretycznej funkcji prawdopodobieństwa:
 ```{r}
 F_emp = table(traffic_data)
 F_teor = dpois(as.numeric(names(F_emp)), lambda = est_lambda) 
-plot(0:12, F_teor)
-points(F_emp / length(traffic_data))
+plot(0:12, F_teor,type = "p", ylim = c(0, 0.25), pch = 4, col = "green4", 
+     las = 1, lwd = 2, main = "Funkcje prawdopodobieństwa", xaxt = "n",
+     xlab = expression(italic("k")), ylab = expression("P" ~ italic("(x=k)")))
+points(F_emp / length(traffic_data), type = "p", pch = 3, col = "red3")
+legend("topright", legend = c("teoretyczna", "empiryczna"), col = c("green4", "red3"),
+       pch = c(4, 3), bg = "white")
+axis(1, at = 0:12)
+abline(h = seq(0, 0.25, by = 0.05), v = 0:12, lty = 2, col = "grey")
 
 
 ```
@@ -83,7 +89,41 @@ points(F_emp / length(traffic_data))
 
 ## Rozwiązanie
 
-tu umieść swoje rozwiązanie
+
+Przygotowanie danych
+```{r}
+unzip('mstall.zip', files = 'CREOTECH.mst')
+df_CREOTECH = read.csv('CREOTECH.mst')
+
+names(df_CREOTECH) = c('ticker', 'date', 'open', 'high', 'low', 'close','vol')
+df_CREOTECH$date = as.Date.character(df_CREOTECH$date, format ='%Y%m%d')
+```
+
+Ograniczenie do danych z dwunastu miesięcy od ostatniej dostępnej daty:
+
+```{r, warning=FALSE}
+library(lubridate)
+latest_date_CREOTECH = max(df_CREOTECH$date)
+df_CREOTECH = df_CREOTECH[which(df_CREOTECH$date >= latest_date_CREOTECH %m-% months(12)),]
+```
+
+Dodanie kolumny z procentowymi zmianami najwyższego kursu dziennego:
+
+```{r}
+df_CREOTECH$high_diff = with(df_CREOTECH, c(NA, 100*diff(high)/high[-length(high)]))
+```
+
+Utworzenie histogramu (przedziały półprocentowe):
+
+```{r}
+hist(df_CREOTECH$high_diff,
+breaks = 40, prob = F,
+xlab = 'Zmiana najwyższego kursu dziennego [%] ',
+ylab = 'Częstość występowania',
+xlim = c(-10, 15),
+main = paste('Histogram procentowych zmian kursu', 'CREOTECH'), col = '#DC143C')
+grid()
+```
 
 ***
 
