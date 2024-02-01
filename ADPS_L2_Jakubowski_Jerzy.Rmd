@@ -1,4 +1,4 @@
----
+  ---
 title: "ADPS 2023Z --- Laboratorium 2 (rozwiązania)"
 author: "Bartolini Bartłomiej herbu Zielona Pietruszka"
 output:
@@ -55,7 +55,7 @@ Odchylenie standardowe estymatora parametru $\lambda$ wynosi `r round(sd_est_lam
 
 
 
-Wykresy empirycznej i teoretycznej funkcji prawdopodobieństwa:
+Wykresy porównawcze empirycznej i teoretycznej funkcji prawdopodobieństwa:
 
 ```{r}
 F_emp = table(traffic_data)
@@ -123,6 +123,54 @@ ylab = 'Częstość występowania',
 xlim = c(-10, 15),
 main = paste('Histogram procentowych zmian kursu', 'CREOTECH'), col = '#DC143C')
 grid()
+```
+
+Estymacja średniej i wariancji rozkładu:
+
+```{r}
+est_mean = mean(df_CREOTECH$high_diff, na.rm = TRUE)
+est_var = var(df_CREOTECH$high_diff, na.rm = TRUE)
+```
+
+Wyznaczenie funkcji gęstości prawdopodobieństwa dla wyestymowanych parametrów:
+
+```{r}
+x = seq(min(df_CREOTECH$high_diff, na.rm = T), 
+                        max(df_CREOTECH$high_diff, na.rm = T), by = 0.1)
+f_norm_teor = dnorm(x, mean = est_mean, sd = sqrt(est_var))
+```
+
+Porównanie wykresów:
+
+```{r}
+hist(df_CREOTECH$high_diff,
+breaks = 40, prob = T,
+xlab = 'x',
+ylab = 'f(x)',
+xlim = c(-10, 15),
+main = "Porównanie wykresów", col = 'darkgoldenrod1',
+las = 1)
+
+lines(x, f_norm_teor, col = 'darkorchid4', lwd = 2)
+legend("topright", legend = c("wartości empiryczne", "teoretyczna f. gęstości prawd."),
+              fill = c("darkgoldenrod1", "darkorchid4"))
+grid()
+```
+
+Na podstawie powyższych wykresów można oszacować, że dane prawdopodobnie nie mają
+rozkładu normalnego, ze względu na znacznie większą od teoretycznej
+ilość obserwacji w przedziale od -0,5 % do 0,0 %. Ilośc obserwacji w tym przedziale
+wynosi `r sum(df_CREOTECH$high_diff >= -0.5 & df_CREOTECH$high_diff <= 0 & !is.na(df_CREOTECH$high_diff))` 
+na `r sum(!is.na(df_CREOTECH$high_diff))` obserwacji, co odpowiada `r sum(!is.na(df_CREOTECH$high_diff)) / sum(df_CREOTECH$high_diff >= -0.5 & df_CREOTECH$high_diff <= 0 & !is.na(df_CREOTECH$high_diff))` całości. 
+Dla otrzymanego teoretycznego rozkładu prawdopodobieństwo, że obserwacja znajdzie się w tym przedziale 
+wynosi `r pnorm(0, mean = est_mean, sd = sqrt(est_var)) - pnorm(-0.5, mean = est_mean, sd = sqrt(est_var))`
+
+
+Wyznaczenie przedziałów ufności:
+
+- 
+```{r}
+shapiro.test(df_CREOTECH$high_diff)
 ```
 
 ***
