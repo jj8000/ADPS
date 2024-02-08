@@ -161,17 +161,68 @@ Na podstawie powyższych wykresów można oszacować, że dane prawdopodobnie ni
 rozkładu normalnego, ze względu na znacznie większą od teoretycznej
 ilość obserwacji w przedziale od -0,5 % do 0,0 %. Ilośc obserwacji w tym przedziale
 wynosi `r sum(df_CREOTECH$high_diff >= -0.5 & df_CREOTECH$high_diff <= 0 & !is.na(df_CREOTECH$high_diff))` 
-na `r sum(!is.na(df_CREOTECH$high_diff))` obserwacji, co odpowiada `r sum(!is.na(df_CREOTECH$high_diff)) / sum(df_CREOTECH$high_diff >= -0.5 & df_CREOTECH$high_diff <= 0 & !is.na(df_CREOTECH$high_diff))` całości. 
+na `r sum(!is.na(df_CREOTECH$high_diff))` obserwacji, co odpowiada `r sum(df_CREOTECH$high_diff >= -0.5 & df_CREOTECH$high_diff <= 0 & !is.na(df_CREOTECH$high_diff)) / sum(!is.na(df_CREOTECH$high_diff))` całości. 
 Dla otrzymanego teoretycznego rozkładu prawdopodobieństwo, że obserwacja znajdzie się w tym przedziale 
 wynosi `r pnorm(0, mean = est_mean, sd = sqrt(est_var)) - pnorm(-0.5, mean = est_mean, sd = sqrt(est_var))`
 
 
 Wyznaczenie przedziałów ufności:
 
-- 
+- Liczebność próby:
 ```{r}
-shapiro.test(df_CREOTECH$high_diff)
+n = length(na.omit(df_CREOTECH$high_diff))
 ```
+
+- Poziom ufności 90%:
+
+```{r}
+conf_level = 0.90 
+S = sd(df_CREOTECH$high_diff, na.rm = TRUE)
+w = S*qt((1+conf_level)/2, n-1)/sqrt(n)
+mean_conf_int_90 = c(est_mean - w, est_mean + w)
+crit_val1 = (1 - conf_level)/2
+crit_val2 = 1 - (1 - conf_level)/2
+var_conf_int_90 = c((n-1)*S^2/qchisq(crit_val2, n-1), (n-1)*S^2/qchisq(crit_val1, n-1))
+```
+
+- Poziom ufności 95%:
+
+```{r}
+conf_level = 0.95 
+S = sd(df_CREOTECH$high_diff, na.rm = TRUE)
+w = S*qt((1+conf_level)/2, n-1)/sqrt(n)
+mean_conf_int_95 = c(est_mean - w, est_mean + w)
+crit_val1 = (1 - conf_level)/2
+crit_val2 = 1 - (1 - conf_level)/2
+var_conf_int_95 = c((n-1)*S^2/qchisq(crit_val2, n-1), (n-1)*S^2/qchisq(crit_val1, n-1))
+```
+
+- Poziom ufności 99%:
+
+```{r}
+conf_level = 0.99 
+S = sd(df_CREOTECH$high_diff, na.rm = TRUE)
+w = S*qt((1+conf_level)/2, n-1)/sqrt(n)
+mean_conf_int_99 = c(est_mean - w, est_mean + w)
+crit_val1 = (1 - conf_level)/2
+crit_val2 = 1 - (1 - conf_level)/2
+var_conf_int_99 = c((n-1)*S^2/qchisq(crit_val2, n-1), (n-1)*S^2/qchisq(crit_val1, n-1))
+```
+
+Wyniki zestawiono poniżej:
+
+- Dla poziomu ufności 90 %: \
+  Przedział ufności dla średniej: `r mean_conf_int_90`\
+  Przedział ufności dla wariancji: `r var_conf_int_90`\
+  
+- Dla poziomu ufności 95 %: \
+  Przedział ufności dla średniej: `r mean_conf_int_95`\
+  Przedział ufności dla wariancji: `r var_conf_int_95`\
+  
+- Dla poziomu ufności 99 %: \
+  Przedział ufności dla średniej: `r mean_conf_int_99`\
+  Przedział ufności dla wariancji: `r var_conf_int_99`\
+  
 
 ***
 
