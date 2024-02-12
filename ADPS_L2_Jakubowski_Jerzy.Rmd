@@ -1,4 +1,4 @@
-  ---
+   ---
 title: "ADPS 2023Z --- Laboratorium 2 (rozwiązania)"
 author: "Bartolini Bartłomiej herbu Zielona Pietruszka"
 output:
@@ -238,6 +238,7 @@ $$ \mathbb{E}X = \frac{\alpha}{\alpha + \beta}, \qquad \mathbb{V}X = \frac{\alph
 * Na podstawie przypuszczanej (a priori) wartości oczekiwanej parametru $p$ zaproponuj wartości parametrów $\alpha$ i $\beta$ rozkładu a priori parametru $p$. Narysuj rozkład a priori parametru $p$ (wykorzystaj funkcję dbeta()).
 
 * Rzuć pinezką 20 razy i zanotuj wyniki kolejnych rzutów (1 - pinezka upada ostrzem do góry, 0 - pinezka upada ostrzem do dołu). Wyznacz i narysuj rozkład a posteriori parametru $p$ oraz oblicz wartość bayesowskiego estymatora $\hat{p}$. W\ rozważanym przypadku rozkład aposteriori parametru $p$ jest również rozkładem beta o parametrach:
+
 $$ \alpha_{\textrm{post}} = \alpha_{\textrm{prior}} + \sum_{i=1}^n x_i, \qquad \beta_{\textrm{post}} = \beta_{\textrm{prior}} + n - \sum_{i=1}^n x_i,\qquad x_i\in\{0,1\}.$$
 
 * Rzuć pinezką jeszcze 20 razy i zanotuj wyniki. Wyznacz i narysuj rozkład a posteriori oparty na wszystkich 40 rzutach oraz oblicz wartość bayesowskiego estymatora $\hat{p}$ w tym przypadku. Porównaj wyniki z wynikami uzyskanymi po pierwszych 20 rzutach.
@@ -246,8 +247,118 @@ $$ \alpha_{\textrm{post}} = \alpha_{\textrm{prior}} + \sum_{i=1}^n x_i, \qquad \
 
 ## Rozwiązanie
 
-tu umieść swoje rozwiązanie
+Przyjęto a priori wartości $\alpha=3$ i $\beta=7$:
 
+```{r}
+alpha_prior = 3
+beta_prior = 7
+```
+
+Wykres rozkładu parametru $p$ dla przyjętych wartości:
+
+```{r}
+x_ = seq(0, 1, 0.01)
+y = dbeta(x_, alpha_prior, beta_prior)
+plot(x_, y, type = "l", col = "brown3", lwd = 2, 
+     main = "Rozkład a priori", xlab = "p", ylab = "f(p)", las = 1)
+grid()
+```
+W pierwszych 20 rzutach uzyskano 6 wyników pozytywnych - dokładna sekwencja rzutów poniżej:
+
+```{r}
+test_1 = c(0,0,1,0,0,0,0,0,1,0,1,1,0,1,1,0,0,0,0,0)
+df_test_1 = as.data.frame(table(test_1))
+names(df_test_1) = c("Wynik", "Liczba zdarzeń")
+print(df_test_1)
+```
+
+Na podstawie eksperymentu wyznaczono a posteriori parametry rozkładu:
+```{r}
+alpha_post = alpha_prior + sum(test_1)
+beta_post = beta_prior + length(test_1) - sum(test_1)
+```
+
+Wykres rozkładu parametru $p$ dla wartości a posteriori:
+
+```{r}
+x_ = seq(0, 1, 0.01)
+y1 = dbeta(x_, alpha_post, beta_post)
+plot(x_, y1, type = "l", col = "blue3", lwd = 2, 
+     main = "Rozkład a posteriori, 20 rzutów", xlab = "p", ylab = "f(p)", las = 1)
+grid()
+```
+
+Przyjmując dominantę jako wartość estymatora $\hat{p}$, wyznaczono jego wartość:
+
+```{r}
+p_est = (alpha_post - 1) / (alpha_post + beta_post - 2)
+```
+
+Otrzymana wartość $\hat{p}$ wynosi `r round(p_est, 3)`.
+
+Wyniki dla kolejnych 20 rzutów:
+
+```{r}
+test_2 = c(0,0,0,0,0,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1)
+df_test_2 = as.data.frame(table(test_2))
+names(df_test_2) = c("Wynik", "Liczba zdarzeń")
+print(df_test_2)
+```
+
+
+Parametry rozkładu a posteriori dla wszystkich 40 rzutów:
+```{r}
+alpha_post_2 = alpha_prior + sum(test_1, test_2)
+beta_post_2 = beta_prior + length(c(test_1, test_2)) - sum(test_1, test_2)
+```
+
+Wykres rozkładu parametru $p$ a posteriori dla wszystkich 40 rzutów:
+
+```{r}
+y2 = dbeta(x_, alpha_post_2, beta_post_2)
+plot(x_, y2, type = "l", col = "gold2", lwd = 2, 
+     main = "Rozkład a posteriori, 40 rzutów", xlab = "p", ylab = "f(p)", las = 1)
+grid()
+```
+W przypadku analizy 40 rzutów estymator $\hat{p}$ obliczono jak poniżej:
+
+```{r}
+p_est_2 = (alpha_post_2 - 1) / (alpha_post_2 + beta_post_2 - 2)
+```
+
+Otrzymana wartość $\hat{p}$ przy 40 rzutach wynosi `r round(p_est, 3)`. \
+Stanowi to zmianę o około `r round(((p_est_2 - p_est) / p_est) * 100, 2)` %. 
+
+Wyznaczenie wariancji dla każdego z rozkładów:
+```{r}
+var_prior = (alpha_prior * beta_prior) / (((alpha_prior + beta_prior) ^ 2) * (alpha_prior + beta_prior + 1))
+var_post_1 = (alpha_post * beta_post) / (((alpha_post + beta_post) ^ 2) * (alpha_post + beta_post + 1))
+var_post_2 = (alpha_post_2 * beta_post_2) / (((alpha_post_2 + beta_post_2) ^ 2) * (alpha_post_2 + beta_post_2 + 1))
+``` 
+
+Wartości wariancji zestawiono poniżej:
+
+```{r}
+Var_df = data.frame(var_prior, var_post_1, var_post_2, row.names = "Wariancja")
+names(Var_df) = c("A priori", "A posteriori, n=20", "A posteriori, n=40")
+
+print(round(Var_df, 5))
+``` 
+
+
+W celach porównawczych wykresy zestawiono poniżej na jednym rysunku:
+```{r}
+plot(x_, y2, type = "l", col = "gold2", lwd = 2, 
+     main = "Porównanie rozkładów", xlab = "p", ylab = "f(p)", las = 1)
+lines(x_, y1, col = "blue3", lwd = 2)
+lines(x_, y, col = "brown3", lwd = 2)
+grid()
+legend("topright", legend = c("a priori", "a posteriori, n = 20", "a posteriori, n = 40"),
+       col = c("brown3", "blue3", "gold2"), lwd = 2)
+text(x = 0.4, y = 5.2, labels = paste("var =", round((var_post_2), 5)), pos = 4, col = "gold2")
+text(x = 0.23, y = 4, labels = paste("var =", round((var_post_1), 5)), pos = 2, col = "blue3")
+text(x = 0.17, y = 2.4, labels = paste("var =", round((var_prior), 5)), pos = 2, col = "brown3")
+```
 ***
 
 # Zadanie 4 (1,5 pkt.)
@@ -266,6 +377,9 @@ Plik fotony.txt zawiera odstępy między chwilami rejestracji kolejnych fotonów
 
 ## Rozwiązanie
 
-tu umieść swoje rozwiązanie
+Wczytanie danych:
+```{r}
+photon_data =  scan('fotony.txt')
+```
 
 ***
