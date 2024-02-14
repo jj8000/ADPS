@@ -423,12 +423,6 @@ names(gamma_df) = c("Est. alfa", "Est. beta")
 print(round(gamma_df, 4))
 ``` 
 
-Wyznaczenie funkcji gęstości prawdopodobieństwa dla otrzymanych parametrów:
-```{r}
-gamma_mom = dgamma()
-``` 
-
-
 Histogram obserwacji (odstępów):
 
 ```{r}
@@ -459,7 +453,59 @@ opisuje zaobserwowane dane.
 
 
 Wyznaczenie odchyleń standardowych i przedziałów ufności dla otrzymanych parametrów przy pomocy \
-bootstrapu nieparametrycznego:
+bootstrapu parametrycznego:
+
+  - Zdefiniowano funkcję wyznaczającą parametry na podstawie K iteracji:
+  
+```{r}
+gamma_bootstrap = function(data, K, alpha_est, beta_est){
+  alpha_values = c()
+  beta_values = c()
+  for (i in 1:K) {
+    sample = rgamma(length(data), shape = alpha_est, scale = beta_est)
+    gamma_fit = fitdistr(sample, 'gamma', list(shape=1, scale=1), lower=0)
+    alpha_values <- append(alpha_values, as.numeric(gamma_fit$estimate[1]))
+    beta_values <- append(beta_values, as.numeric(gamma_fit$estimate[2]))
+  }
+  return(list(alpha = alpha_values, beta = beta_values))
+}
+``` 
+
+Wyznaczenie wartości parametrów rozkładu wg obydwu metod:
+```{r}
+gamma_bootstrap_mom = gamma_bootstrap(photon_data, 50, alpha_mom, beta_mom)
+gamma_bootstrap_nw = gamma_bootstrap(photon_data, 50, alpha_nw, beta_nw)
+``` 
+
+Wyznaczenie odchyleń standardowych:
+
+```{r}
+gamma_bootstrap_mom$sd_alpha = sd(gamma_bootstrap_mom$alpha)
+gamma_bootstrap_mom$sd_beta = sd(gamma_bootstrap_mom$beta)
+
+gamma_bootstrap_nw$sd_alpha = sd(gamma_bootstrap_nw$alpha)
+gamma_bootstrap_nw$sd_beta = sd(gamma_bootstrap_nw$beta)
+``` 
+
+Wyznaczenie przedziałów ufności:
+
+```{r}
+conf_level = 0.95
+
+gamma_bootstrap_mom$ci_alpha = quantile(gamma_bootstrap_mom$alpha, 
+                                        c((1 - conf_level) / 2, (1 + conf_level) / 2))
+gamma_bootstrap_mom$ci_beta = quantile(gamma_bootstrap_mom$beta, 
+                                        c((1 - conf_level) / 2, (1 + conf_level) / 2))
+
+gamma_bootstrap_nw$ci_alpha = quantile(gamma_bootstrap_nw$alpha, 
+                                        c((1 - conf_level) / 2, (1 + conf_level) / 2))
+gamma_bootstrap_nw$ci_beta = quantile(gamma_bootstrap_nw$beta, 
+                                        c((1 - conf_level) / 2, (1 + conf_level) / 2))
+``` 
+
+Otrzymane wyniki:
+
+- Metoda momentów:
 
 
 
