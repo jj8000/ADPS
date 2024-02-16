@@ -1,17 +1,26 @@
-   ---
-title: "ADPS 2023Z --- Laboratorium 2 (rozwiązania)"
-author: "Bartolini Bartłomiej herbu Zielona Pietruszka"
+---
 output:
-  pdf_document:
-    latex_engine: xelatex
-  html_notebook: default
+  pdf_document: default
   html_document: default
+---
+   ---
+  title: "ADPS 2023Z --- Laboratorium 2 (rozwiązania)"
+  author: Jerzy Jakubowski
+  output:
+    pdf_document:
+    latex_engine: xelatex
+    html_notebook: default
+    html_document: default
+  
 ---
 
 ```{r, echo=FALSE}
 pdf.options(encoding='ISOLatin2')
 ```
 
+```{r}
+set.seed(673)
+```
 # Zadanie 1 (1 pkt)
 
 ## Treść zadania
@@ -91,6 +100,7 @@ abline(h = seq(0, 0.25, by = 0.05), v = 0:12, lty = 2, col = "grey")
 
 
 Przygotowanie danych
+
 ```{r}
 unzip('mstall.zip', files = 'CREOTECH.mst')
 df_CREOTECH = read.csv('CREOTECH.mst')
@@ -354,9 +364,9 @@ lines(x_, y, col = "brown3", lwd = 2)
 grid()
 legend("topright", legend = c("a priori", "a posteriori, n = 20", "a posteriori, n = 40"),
        col = c("brown3", "blue3", "gold2"), lwd = 2)
-text(x = 0.4, y = 5.2, labels = paste("var =", round((var_post_2), 5)), pos = 4, col = "gold2")
+text(x = 0.36, y = 5.5, labels = paste("var =", round((var_post_2), 5)), pos = 4, col = "gold2")
 text(x = 0.23, y = 4, labels = paste("var =", round((var_post_1), 5)), pos = 2, col = "blue3")
-text(x = 0.17, y = 2.4, labels = paste("var =", round((var_prior), 5)), pos = 2, col = "brown3")
+text(x = 0.19, y = 2.5, labels = paste("var =", round((var_prior), 5)), pos = 2, col = "brown3")
 ```
 ***
 
@@ -396,8 +406,6 @@ $$ \frac{\Gamma'(\hat{\alpha})}{\Gamma(\hat{\alpha})}  - ln \hat{\alpha} - \over
 
 ```{r}
 dl_da = function(x) digamma(x) - log(x) - mean(log(photon_data)) + log(mean(photon_data))
-# alpha_nw1 = uniroot(fun, lower = 0.5, upper = 4)$root
-# beta_nw1 = mean(x_g)/alpha_nw1
 ```
 
 Wykres dla celów poglądowych:
@@ -407,14 +415,14 @@ curve(dl_da, from = 0.1, to = 10, col = "coral", lwd = 2, xlab = expression(hat(
       ylab = expression(d*l ~ "/" ~ d*hat(alpha)))
 grid()
 ```
-Wyznacznie estymatorów metodą największej wiarygodności:
+Wyznaczenie estymatorów metodą największej wiarygodności:
 
 ```{r}
 alpha_nw = uniroot(dl_da, lower = 0.5, upper = 2)$root
 beta_nw = mean(photon_data)/alpha_nw
 ```
 
-Porównanie wyników:
+## Porównanie wyników:
 
 ```{r}
 gamma_df = data.frame(c(alpha_mom, alpha_nw), c(beta_mom, beta_nw), 
@@ -435,11 +443,13 @@ legend("topright", legend = c("obserwacje empiryczne", expression(gamma * ", wg 
                               expression(gamma * ", wg metody największej wiarygodności")),
        col = c("gold2", "red2", "darkgreen"), lwd = 2)
 ``` 
+
 Przybliżenie obszaru , w których występują maksima funkcji:
 
 ```{r}
 hist(photon_data, prob = T, breaks = seq(0, 700, 20), xlim = c(0, 100), ylim = c(0.006, 0.012), 
-     xlab = "x", ylab = "f(x)", col = "gold2", main = expression("Porównanie danych z rozkładami" ~ gamma), 
+     xlab = "x", ylab = "f(x)", col = "gold2", 
+     main = expression("Porównanie danych z rozkładami" ~ gamma), 
      las = 1)
 curve(dgamma(x, shape = alpha_mom, scale = beta_mom), add = T, lwd = 2, n = 1000, col = "red2")
 curve(dgamma(x, shape = alpha_nw, scale = beta_nw), add = T, lwd = 2, n = 1000, col = "darkgreen")
@@ -447,17 +457,19 @@ legend("topright", legend = c("obserwacje empiryczne", expression(gamma * ", wg 
                               expression(gamma * ", wg metody największej wiarygodności")),
        col = c("gold2", "red2", "darkgreen"), lwd = 2)
 ``` 
-
 Można ocenić, że obydwie metody dały niemalże pokrywające się wyniki, a rozkład gamma dobrze \
 opisuje zaobserwowane dane.
 
 
-Wyznaczenie odchyleń standardowych i przedziałów ufności dla otrzymanych parametrów przy pomocy \
+
+## Wyznaczenie odchyleń standardowych i przedziałów ufności dla otrzymanych parametrów przy pomocy \
 bootstrapu parametrycznego:
 
-  - Zdefiniowano funkcję wyznaczającą parametry na podstawie K iteracji:
+Zdefiniowano funkcję wyznaczającą parametry na podstawie K iteracji:
   
 ```{r}
+require(MASS)
+
 gamma_bootstrap = function(data, K, alpha_est, beta_est){
   alpha_values = c()
   beta_values = c()
@@ -503,9 +515,24 @@ gamma_bootstrap_nw$ci_beta = quantile(gamma_bootstrap_nw$beta,
                                         c((1 - conf_level) / 2, (1 + conf_level) / 2))
 ``` 
 
-Otrzymane wyniki:
+## Otrzymane wyniki:
 
-- Metoda momentów:
+Metoda momentów:
+
+$\hat{\alpha}$ = `r alpha_mom`, odch. standardowe: ${\sigma}$ = `r gamma_bootstrap_mom$sd_alpha`, 
+przedział ufności 95%: (`r gamma_bootstrap_mom$ci_alpha[[1]]`; `r gamma_bootstrap_mom$ci_alpha[[2]]`)
+
+$\hat{\beta}$ = `r beta_mom`, odch. standardowe: ${\sigma}$ = `r gamma_bootstrap_mom$sd_beta`, 
+przedział ufności 95%: (`r gamma_bootstrap_mom$ci_beta[[1]]`; `r gamma_bootstrap_mom$ci_beta[[2]]`)
+
+
+Metoda największej wiarygodności:
+
+$\hat{\alpha}$ = `r alpha_nw`, odch. standardowe: ${\sigma}$ = `r gamma_bootstrap_nw$sd_alpha`, 
+przedział ufności 95%: (`r gamma_bootstrap_nw$ci_alpha[[1]]`; `r gamma_bootstrap_nw$ci_alpha[[2]]`)
+
+$\hat{\beta}$ = `r beta_nw`, odch. standardowe: ${\sigma}$ = `r gamma_bootstrap_nw$sd_beta`, 
+przedział ufności 95%: (`r gamma_bootstrap_nw$ci_beta[[1]]`; `r gamma_bootstrap_nw$ci_beta[[2]]`)
 
 
 
