@@ -1,0 +1,512 @@
+   ---
+title: "ADPS 2023Z --- Laboratorium 2 (rozwiązania)"
+author: "Bartolini Bartłomiej herbu Zielona Pietruszka"
+output:
+  pdf_document:
+    latex_engine: xelatex
+  html_notebook: default
+  html_document: default
+---
+
+```{r, echo=FALSE}
+pdf.options(encoding='ISOLatin2')
+```
+
+# Zadanie 1 (1 pkt)
+
+## Treść zadania
+
+Rozkład Poissona jest często używany do modelowania ruchu ulicznego (o małym natężeniu). Plik skrety.txt zawiera liczby pojazdów skręcających na pewnym skrzyżowaniu w prawo w przeciągu trzystu 3-minutowych przedziałów czasu (dane zostały zebrane o różnych porach dnia).
+
+* Wczytaj dane za pomocą komendy scan('skrety.txt').
+
+* Dopasuj do danych rozkład Poissona, tj. wyestymuj parametr $\lambda$ rozkładu Poissona.
+
+* Metodą bootstrapu nieparametrycznego oszacuj odchylenie standardowe estymatora parametru $\lambda$.
+
+* Sprawdź i opisz zgodność rozkładu o wyestymowanym parametrze $\lambda$ z zarejestrowanymi danymi porównując graficznie empiryczną i teoretyczną funkcję prawdopodobieństwa. Użyj funkcji table() i\ dpois() analogicznie jak w przykładzie 4 laboratorium 1.
+
+## Rozwiązanie
+
+
+Wczytanie danych:
+```{r}
+traffic_data =  scan('skrety.txt')
+```
+
+Estymacja parametru $\lambda$:
+```{r}
+est_lambda = mean(traffic_data)
+```
+
+
+Wyznaczenie odchylenia standardowego estymatora metodą bootstrapu nieparametrycznego:
+
+```{r}
+K = 1000
+bootstrap_lambda = replicate(K, {
+  boot_dane = sample(traffic_data, replace = T)
+  return(mean(boot_dane))
+})
+sd_est_lambda = sd(bootstrap_lambda)
+```
+
+Odchylenie standardowe estymatora parametru $\lambda$ wynosi `r round(sd_est_lambda, 4)`.
+
+
+
+Wykresy porównawcze empirycznej i teoretycznej funkcji prawdopodobieństwa:
+
+```{r}
+F_emp = table(traffic_data)
+F_teor = dpois(as.numeric(names(F_emp)), lambda = est_lambda) 
+plot(0:12, F_teor,type = "p", ylim = c(0, 0.25), pch = 4, col = "green4", 
+     las = 1, lwd = 2, main = "Funkcje prawdopodobieństwa", xaxt = "n",
+     xlab = expression(italic("k")), ylab = expression("P" ~ italic("(x=k)")))
+points(F_emp / length(traffic_data), type = "p", pch = 3, col = "red3")
+legend("topright", legend = c("teoretyczna", "empiryczna"), col = c("green4", "red3"),
+       pch = c(4, 3), bg = "white")
+axis(1, at = 0:12)
+abline(h = seq(0, 0.25, by = 0.05), v = 0:12, lty = 2, col = "grey")
+
+
+```
+
+
+***
+
+# Zadanie 2 (1 pkt)
+
+## Treść zadania
+
+* Dla wybranej jednej spółki notowanej na GPW oblicz wartości procentowych zmian najwyższych cen w\ dniu (high) w ciągu ostatniego roku i wykreśl ich histogram.
+
+* Wyestymuj wartość średnią oraz wariancję procentowych zmian najwyższych cen w dniu dla wybranej spółki.
+
+* Na podstawie histogramu i wykresu funkcji gęstości prawdopodobieństwa wyznaczonej dla wyestymowanych parametrów (wartość średnia i wariancja) zweryfikuj zgrubnie, czy możemy przyjąć, że procentowe zmiany najwyższych cen w dniu mają rozkład normalny.
+
+* Zakładając, że zmiany najwyższych cen w dniu mają rozkład normalny wyznacz 90%, 95% i 99% przedziały ufności dla wartości średniej i wariancji procentowych zmian najwyższych cen w dniu dla wybranej spółki. Przeanalizuj wyniki uzyskane dla różnych przedziałów ufności.
+
+## Rozwiązanie
+
+
+Przygotowanie danych
+```{r}
+unzip('mstall.zip', files = 'CREOTECH.mst')
+df_CREOTECH = read.csv('CREOTECH.mst')
+
+names(df_CREOTECH) = c('ticker', 'date', 'open', 'high', 'low', 'close','vol')
+df_CREOTECH$date = as.Date.character(df_CREOTECH$date, format ='%Y%m%d')
+```
+
+Ograniczenie do danych z dwunastu miesięcy od ostatniej dostępnej daty:
+
+```{r, warning=FALSE}
+library(lubridate)
+latest_date_CREOTECH = max(df_CREOTECH$date)
+df_CREOTECH = df_CREOTECH[which(df_CREOTECH$date >= latest_date_CREOTECH %m-% months(12)),]
+```
+
+Dodanie kolumny z procentowymi zmianami najwyższego kursu dziennego:
+
+```{r}
+df_CREOTECH$high_diff = with(df_CREOTECH, c(NA, 100*diff(high)/high[-length(high)]))
+```
+
+Utworzenie histogramu (przedziały półprocentowe):
+
+```{r}
+hist(df_CREOTECH$high_diff,
+breaks = 40, prob = F,
+xlab = 'Zmiana najwyższego kursu dziennego [%] ',
+ylab = 'Częstość występowania',
+xlim = c(-10, 15),
+main = paste('Histogram procentowych zmian kursu', 'CREOTECH'), col = '#DC143C')
+grid()
+```
+
+Estymacja średniej i wariancji rozkładu:
+
+```{r}
+est_mean = mean(df_CREOTECH$high_diff, na.rm = TRUE)
+est_var = var(df_CREOTECH$high_diff, na.rm = TRUE)
+```
+
+Wyznaczenie funkcji gęstości prawdopodobieństwa dla wyestymowanych parametrów:
+
+```{r}
+x = seq(min(df_CREOTECH$high_diff, na.rm = T), 
+                        max(df_CREOTECH$high_diff, na.rm = T), by = 0.1)
+f_norm_teor = dnorm(x, mean = est_mean, sd = sqrt(est_var))
+```
+
+Porównanie wykresów:
+
+```{r}
+hist(df_CREOTECH$high_diff,
+breaks = 40, prob = T,
+xlab = 'x',
+ylab = 'f(x)',
+xlim = c(-10, 15),
+main = "Porównanie wykresów", col = 'darkgoldenrod1', las = 1)
+
+lines(x, f_norm_teor, col = 'darkorchid4', lwd = 2)
+legend("topright", legend = c("wartości empiryczne", "teoretyczna f. gęstości prawd."),
+              fill = c("darkgoldenrod1", "darkorchid4"))
+grid()
+```
+
+Na podstawie powyższych wykresów można oszacować, że dane prawdopodobnie nie mają
+rozkładu normalnego, ze względu na znacznie większą od teoretycznej
+ilość obserwacji w przedziale od -0,5 % do 0,0 %. Ilośc obserwacji w tym przedziale
+wynosi `r sum(df_CREOTECH$high_diff >= -0.5 & df_CREOTECH$high_diff <= 0 & !is.na(df_CREOTECH$high_diff))` 
+na `r sum(!is.na(df_CREOTECH$high_diff))` obserwacji, co odpowiada `r sum(df_CREOTECH$high_diff >= -0.5 & df_CREOTECH$high_diff <= 0 & !is.na(df_CREOTECH$high_diff)) / sum(!is.na(df_CREOTECH$high_diff))` całości. 
+Dla otrzymanego teoretycznego rozkładu prawdopodobieństwo, że obserwacja znajdzie się w tym przedziale 
+wynosi `r pnorm(0, mean = est_mean, sd = sqrt(est_var)) - pnorm(-0.5, mean = est_mean, sd = sqrt(est_var))`
+
+
+Wyznaczenie przedziałów ufności:
+
+- Liczebność próby:
+```{r}
+n = length(na.omit(df_CREOTECH$high_diff))
+```
+
+- Poziom ufności 90%:
+
+```{r}
+conf_level = 0.90 
+S = sd(df_CREOTECH$high_diff, na.rm = TRUE)
+w = S*qt((1+conf_level)/2, n-1)/sqrt(n)
+mean_conf_int_90 = c(est_mean - w, est_mean + w)
+crit_val1 = (1 - conf_level)/2
+crit_val2 = 1 - (1 - conf_level)/2
+var_conf_int_90 = c((n-1)*S^2/qchisq(crit_val2, n-1), (n-1)*S^2/qchisq(crit_val1, n-1))
+```
+
+- Poziom ufności 95%:
+
+```{r}
+conf_level = 0.95 
+S = sd(df_CREOTECH$high_diff, na.rm = TRUE)
+w = S*qt((1+conf_level)/2, n-1)/sqrt(n)
+mean_conf_int_95 = c(est_mean - w, est_mean + w)
+crit_val1 = (1 - conf_level)/2
+crit_val2 = 1 - (1 - conf_level)/2
+var_conf_int_95 = c((n-1)*S^2/qchisq(crit_val2, n-1), (n-1)*S^2/qchisq(crit_val1, n-1))
+```
+
+- Poziom ufności 99%:
+
+```{r}
+conf_level = 0.99 
+S = sd(df_CREOTECH$high_diff, na.rm = TRUE)
+w = S*qt((1+conf_level)/2, n-1)/sqrt(n)
+mean_conf_int_99 = c(est_mean - w, est_mean + w)
+crit_val1 = (1 - conf_level)/2
+crit_val2 = 1 - (1 - conf_level)/2
+var_conf_int_99 = c((n-1)*S^2/qchisq(crit_val2, n-1), (n-1)*S^2/qchisq(crit_val1, n-1))
+```
+
+Wyniki zestawiono poniżej:
+
+- Dla poziomu ufności 90 %: \
+  Przedział ufności dla średniej: `r mean_conf_int_90`\
+  Przedział ufności dla wariancji: `r var_conf_int_90`\
+  
+- Dla poziomu ufności 95 %: \
+  Przedział ufności dla średniej: `r mean_conf_int_95`\
+  Przedział ufności dla wariancji: `r var_conf_int_95`\
+  
+- Dla poziomu ufności 99 %: \
+  Przedział ufności dla średniej: `r mean_conf_int_99`\
+  Przedział ufności dla wariancji: `r var_conf_int_99`\
+  
+
+***
+
+# Zadanie 3 (1,5 pkt.)
+
+## Treść zadania
+
+Rzucona pinezka upada ostrzem do dołu lub do góry. Doświadczenie to można opisać rozkładem Bernoulliego z parametrem $p$ będącym prawdopodobieństwem tego, że pinezka upadnie ostrzem do góry. 
+
+Rozkład parametru $p$ można opisać rozkładem beta o parametrach $\alpha$ i $\beta$. Wartość średnia i wariancja w\ rozkładzie beta zależą od parametrów rozkładu w następujący sposób:
+$$ \mathbb{E}X = \frac{\alpha}{\alpha + \beta}, \qquad \mathbb{V}X = \frac{\alpha\beta}{(\alpha + \beta)^2(\alpha + \beta + 1)}, \qquad dominanta = \frac{\alpha - 1}{\alpha + \beta - 2}.$$
+
+* Na podstawie przypuszczanej (a priori) wartości oczekiwanej parametru $p$ zaproponuj wartości parametrów $\alpha$ i $\beta$ rozkładu a priori parametru $p$. Narysuj rozkład a priori parametru $p$ (wykorzystaj funkcję dbeta()).
+
+* Rzuć pinezką 20 razy i zanotuj wyniki kolejnych rzutów (1 - pinezka upada ostrzem do góry, 0 - pinezka upada ostrzem do dołu). Wyznacz i narysuj rozkład a posteriori parametru $p$ oraz oblicz wartość bayesowskiego estymatora $\hat{p}$. W\ rozważanym przypadku rozkład aposteriori parametru $p$ jest również rozkładem beta o parametrach:
+
+$$ \alpha_{\textrm{post}} = \alpha_{\textrm{prior}} + \sum_{i=1}^n x_i, \qquad \beta_{\textrm{post}} = \beta_{\textrm{prior}} + n - \sum_{i=1}^n x_i,\qquad x_i\in\{0,1\}.$$
+
+* Rzuć pinezką jeszcze 20 razy i zanotuj wyniki. Wyznacz i narysuj rozkład a posteriori oparty na wszystkich 40 rzutach oraz oblicz wartość bayesowskiego estymatora $\hat{p}$ w tym przypadku. Porównaj wyniki z wynikami uzyskanymi po pierwszych 20 rzutach.
+
+* Korzystając ze wzoru na wariancję rozkładu Beta wyznacz i porównaj wariancje rozkładów a priori, a\ posteriori po 20 rzutach i a posteriori po 40 rzutach.
+
+## Rozwiązanie
+
+Przyjęto a priori wartości $\alpha=3$ i $\beta=7$:
+
+```{r}
+alpha_prior = 3
+beta_prior = 7
+```
+
+Wykres rozkładu parametru $p$ dla przyjętych wartości:
+
+```{r}
+x_ = seq(0, 1, 0.01)
+y = dbeta(x_, alpha_prior, beta_prior)
+plot(x_, y, type = "l", col = "brown3", lwd = 2, 
+     main = "Rozkład a priori", xlab = "p", ylab = "f(p)", las = 1)
+grid()
+```
+W pierwszych 20 rzutach uzyskano 6 wyników pozytywnych - dokładna sekwencja rzutów poniżej:
+
+```{r}
+test_1 = c(0,0,1,0,0,0,0,0,1,0,1,1,0,1,1,0,0,0,0,0)
+df_test_1 = as.data.frame(table(test_1))
+names(df_test_1) = c("Wynik", "Liczba zdarzeń")
+print(df_test_1)
+```
+
+Na podstawie eksperymentu wyznaczono a posteriori parametry rozkładu:
+```{r}
+alpha_post = alpha_prior + sum(test_1)
+beta_post = beta_prior + length(test_1) - sum(test_1)
+```
+
+Wykres rozkładu parametru $p$ dla wartości a posteriori:
+
+```{r}
+x_ = seq(0, 1, 0.01)
+y1 = dbeta(x_, alpha_post, beta_post)
+plot(x_, y1, type = "l", col = "blue3", lwd = 2, 
+     main = "Rozkład a posteriori, 20 rzutów", xlab = "p", ylab = "f(p)", las = 1)
+grid()
+```
+
+Przyjmując dominantę jako wartość estymatora $\hat{p}$, wyznaczono jego wartość:
+
+```{r}
+p_est = (alpha_post - 1) / (alpha_post + beta_post - 2)
+```
+
+Otrzymana wartość $\hat{p}$ wynosi `r round(p_est, 3)`.
+
+Wyniki dla kolejnych 20 rzutów:
+
+```{r}
+test_2 = c(0,0,0,0,0,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1)
+df_test_2 = as.data.frame(table(test_2))
+names(df_test_2) = c("Wynik", "Liczba zdarzeń")
+print(df_test_2)
+```
+
+
+Parametry rozkładu a posteriori dla wszystkich 40 rzutów:
+```{r}
+alpha_post_2 = alpha_prior + sum(test_1, test_2)
+beta_post_2 = beta_prior + length(c(test_1, test_2)) - sum(test_1, test_2)
+```
+
+Wykres rozkładu parametru $p$ a posteriori dla wszystkich 40 rzutów:
+
+```{r}
+y2 = dbeta(x_, alpha_post_2, beta_post_2)
+plot(x_, y2, type = "l", col = "gold2", lwd = 2, 
+     main = "Rozkład a posteriori, 40 rzutów", xlab = "p", ylab = "f(p)", las = 1)
+grid()
+```
+W przypadku analizy 40 rzutów estymator $\hat{p}$ obliczono jak poniżej:
+
+```{r}
+p_est_2 = (alpha_post_2 - 1) / (alpha_post_2 + beta_post_2 - 2)
+```
+
+Otrzymana wartość $\hat{p}$ przy 40 rzutach wynosi `r round(p_est, 3)`. \
+Stanowi to zmianę o około `r round(((p_est_2 - p_est) / p_est) * 100, 2)` %. 
+
+Wyznaczenie wariancji dla każdego z rozkładów:
+```{r}
+var_prior = (alpha_prior * beta_prior) / (((alpha_prior + beta_prior) ^ 2) * (alpha_prior + beta_prior + 1))
+var_post_1 = (alpha_post * beta_post) / (((alpha_post + beta_post) ^ 2) * (alpha_post + beta_post + 1))
+var_post_2 = (alpha_post_2 * beta_post_2) / (((alpha_post_2 + beta_post_2) ^ 2) * (alpha_post_2 + beta_post_2 + 1))
+``` 
+
+Wartości wariancji zestawiono poniżej:
+
+```{r}
+Var_df = data.frame(var_prior, var_post_1, var_post_2, row.names = "Wariancja")
+names(Var_df) = c("A priori", "A posteriori, n=20", "A posteriori, n=40")
+
+print(round(Var_df, 5))
+``` 
+
+
+W celach porównawczych wykresy zestawiono poniżej na jednym rysunku:
+```{r}
+plot(x_, y2, type = "l", col = "gold2", lwd = 2, 
+     main = "Porównanie rozkładów", xlab = "p", ylab = "f(p)", las = 1)
+lines(x_, y1, col = "blue3", lwd = 2)
+lines(x_, y, col = "brown3", lwd = 2)
+grid()
+legend("topright", legend = c("a priori", "a posteriori, n = 20", "a posteriori, n = 40"),
+       col = c("brown3", "blue3", "gold2"), lwd = 2)
+text(x = 0.4, y = 5.2, labels = paste("var =", round((var_post_2), 5)), pos = 4, col = "gold2")
+text(x = 0.23, y = 4, labels = paste("var =", round((var_post_1), 5)), pos = 2, col = "blue3")
+text(x = 0.17, y = 2.4, labels = paste("var =", round((var_prior), 5)), pos = 2, col = "brown3")
+```
+***
+
+# Zadanie 4 (1,5 pkt.)
+
+## Treść zadania
+
+Plik fotony.txt zawiera odstępy między chwilami rejestracji kolejnych fotonów promieniowania gamma wykonywanymi za pomocą teleskopu kosmicznego Comptona (CGRO) w roku 1991.
+
+* Wczytaj dane za pomocą komendy scan('fotony.txt')
+
+* Metodą momentów oraz metodą największej wiarygodności wyznacz estymaty parametrów rozkładu gamma odpowiadające zarejestrowanym danym. Porównaj wyniki uzyskane dla obu metod.
+
+* Narysuj na jednym wykresie histogram odstępów oraz funkcje gęstości rozkładu gamma o parametrach wyestymowanych za pomocą obu metod.
+
+* Metodą bootstrapu parametrycznego wyznacz dla obu metod (momentów oraz największej wiarygodności) odchylenia standardowe estymatorów parametrów rozkładu gamma ($\alpha$ i $\beta$) oraz ich przedziały ufności na poziomie ufności 95%. Porównaj wyniki uzyskane dla obu metod.
+
+## Rozwiązanie
+
+Wczytanie danych:
+```{r}
+photon_data =  scan('fotony.txt')
+```
+Wyznaczenie estymatorów metodą momentów: 
+$$ \hat{\alpha} = \frac{m_{1}^{2}}{m_2-m_{1}^{2}}, \qquad \hat{\beta} = \frac{m_2-m_{1}^{2}}{m_{1}}.$$
+```{r}
+m1 = mean(photon_data)
+m2 = mean(photon_data^2)
+alpha_mom = m1^2/(m2 - m1^2)
+beta_mom = (m2 - m1^2)/m1
+```
+
+Wyznaczenie estymatorów metodą największej wiarygodności:
+
+W celu znalezienia wartości $\hat{\alpha}$ należy rozwiązać równanie: 
+$$ \frac{\Gamma'(\hat{\alpha})}{\Gamma(\hat{\alpha})}  - ln \hat{\alpha} - \overline{(ln X)}_n + ln\overline{X}_n = 0,$$
+
+```{r}
+dl_da = function(x) digamma(x) - log(x) - mean(log(photon_data)) + log(mean(photon_data))
+# alpha_nw1 = uniroot(fun, lower = 0.5, upper = 4)$root
+# beta_nw1 = mean(x_g)/alpha_nw1
+```
+
+Wykres dla celów poglądowych:
+
+```{r}
+curve(dl_da, from = 0.1, to = 10, col = "coral", lwd = 2, xlab = expression(hat(alpha)), 
+      ylab = expression(d*l ~ "/" ~ d*hat(alpha)))
+grid()
+```
+Wyznacznie estymatorów metodą największej wiarygodności:
+
+```{r}
+alpha_nw = uniroot(dl_da, lower = 0.5, upper = 2)$root
+beta_nw = mean(photon_data)/alpha_nw
+```
+
+Porównanie wyników:
+
+```{r}
+gamma_df = data.frame(c(alpha_mom, alpha_nw), c(beta_mom, beta_nw), 
+                      row.names = c("Metoda momentów", "Metoda największej wiarygodności"))
+names(gamma_df) = c("Est. alfa", "Est. beta")
+print(round(gamma_df, 4))
+``` 
+
+Histogram obserwacji (odstępów):
+
+```{r}
+hist(photon_data, prob = T, breaks = seq(0, 700, 20), xlim = c(0, 700),  
+     xlab = "x", ylab = "f(x)", col = "gold2", main = expression("Porównanie danych z rozkładami" ~ gamma), 
+     las = 1)
+curve(dgamma(x, shape = alpha_mom, scale = beta_mom), add = T, lwd = 2, n = 1000, col = "red2")
+curve(dgamma(x, shape = alpha_nw, scale = beta_nw), add = T, lwd = 2, n = 1000, col = "darkgreen")
+legend("topright", legend = c("obserwacje empiryczne", expression(gamma * ", wg metody momentów"), 
+                              expression(gamma * ", wg metody największej wiarygodności")),
+       col = c("gold2", "red2", "darkgreen"), lwd = 2)
+``` 
+Przybliżenie obszaru , w których występują maksima funkcji:
+
+```{r}
+hist(photon_data, prob = T, breaks = seq(0, 700, 20), xlim = c(0, 100), ylim = c(0.006, 0.012), 
+     xlab = "x", ylab = "f(x)", col = "gold2", main = expression("Porównanie danych z rozkładami" ~ gamma), 
+     las = 1)
+curve(dgamma(x, shape = alpha_mom, scale = beta_mom), add = T, lwd = 2, n = 1000, col = "red2")
+curve(dgamma(x, shape = alpha_nw, scale = beta_nw), add = T, lwd = 2, n = 1000, col = "darkgreen")
+legend("topright", legend = c("obserwacje empiryczne", expression(gamma * ", wg metody momentów"), 
+                              expression(gamma * ", wg metody największej wiarygodności")),
+       col = c("gold2", "red2", "darkgreen"), lwd = 2)
+``` 
+
+Można ocenić, że obydwie metody dały niemalże pokrywające się wyniki, a rozkład gamma dobrze \
+opisuje zaobserwowane dane.
+
+
+Wyznaczenie odchyleń standardowych i przedziałów ufności dla otrzymanych parametrów przy pomocy \
+bootstrapu parametrycznego:
+
+  - Zdefiniowano funkcję wyznaczającą parametry na podstawie K iteracji:
+  
+```{r}
+gamma_bootstrap = function(data, K, alpha_est, beta_est){
+  alpha_values = c()
+  beta_values = c()
+  for (i in 1:K) {
+    sample = rgamma(length(data), shape = alpha_est, scale = beta_est)
+    gamma_fit = fitdistr(sample, 'gamma', list(shape=1, scale=1), lower=0)
+    alpha_values <- append(alpha_values, as.numeric(gamma_fit$estimate[1]))
+    beta_values <- append(beta_values, as.numeric(gamma_fit$estimate[2]))
+  }
+  return(list(alpha = alpha_values, beta = beta_values))
+}
+``` 
+
+Wyznaczenie wartości parametrów rozkładu wg obydwu metod:
+```{r}
+gamma_bootstrap_mom = gamma_bootstrap(photon_data, 50, alpha_mom, beta_mom)
+gamma_bootstrap_nw = gamma_bootstrap(photon_data, 50, alpha_nw, beta_nw)
+``` 
+
+Wyznaczenie odchyleń standardowych:
+
+```{r}
+gamma_bootstrap_mom$sd_alpha = sd(gamma_bootstrap_mom$alpha)
+gamma_bootstrap_mom$sd_beta = sd(gamma_bootstrap_mom$beta)
+
+gamma_bootstrap_nw$sd_alpha = sd(gamma_bootstrap_nw$alpha)
+gamma_bootstrap_nw$sd_beta = sd(gamma_bootstrap_nw$beta)
+``` 
+
+Wyznaczenie przedziałów ufności:
+
+```{r}
+conf_level = 0.95
+
+gamma_bootstrap_mom$ci_alpha = quantile(gamma_bootstrap_mom$alpha, 
+                                        c((1 - conf_level) / 2, (1 + conf_level) / 2))
+gamma_bootstrap_mom$ci_beta = quantile(gamma_bootstrap_mom$beta, 
+                                        c((1 - conf_level) / 2, (1 + conf_level) / 2))
+
+gamma_bootstrap_nw$ci_alpha = quantile(gamma_bootstrap_nw$alpha, 
+                                        c((1 - conf_level) / 2, (1 + conf_level) / 2))
+gamma_bootstrap_nw$ci_beta = quantile(gamma_bootstrap_nw$beta, 
+                                        c((1 - conf_level) / 2, (1 + conf_level) / 2))
+``` 
+
+Otrzymane wyniki:
+
+- Metoda momentów:
+
+
+
+***
