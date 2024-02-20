@@ -1,0 +1,434 @@
+---
+title: "ADPS 2023Z --- Laboratorium 1 (rozwiązania)"
+author: "Jerzy Jakubowski"
+output:
+  pdf_document: 
+    latex_engine: xelatex
+  html_notebook: default
+  html_document: default
+---
+
+```{r, echo=FALSE}
+pdf.options(encoding='ISOLatin2')
+```
+
+
+# Zadanie 1 (1 pkt)
+
+## Treść zadania
+
+Dla danych z ostatnich 18 miesięcy dotyczacych wybranych dwóch spółek giełdowych:
+
+* sporządź wykresy procentowych zmian kursów zamknięcia w zależności od daty,
+
+* wykreśl i porównaj histogramy procentowych zmian kursów zamknięcia,
+
+* wykonaj jeden wspólny rysunek z wykresami pudełkowymi zmian kursów zamknięcia.
+
+## Rozwiązanie
+
+Przygotowanie danych:
+```{r}
+unzip('mstall.zip', files = c('CREOTECH.mst', 'ENELMED.mst'))
+
+df_CREOTECH = read.csv('CREOTECH.mst')
+df_ENELMED = read.csv('ENELMED.mst')
+
+names(df_CREOTECH) = c('ticker', 'date', 'open', 'high', 'low', 'close','vol')
+names(df_ENELMED) = c('ticker', 'date', 'open', 'high', 'low', 'close','vol')
+
+df_CREOTECH$date = as.Date.character(df_CREOTECH$date, format ='%Y%m%d')
+df_ENELMED$date = as.Date.character(df_ENELMED$date, format ='%Y%m%d')
+```
+
+Ograniczenie do danych z osiemnastu miesięcy od ostatniej dostępnej daty:
+```{r}
+
+library(lubridate)
+latest_date_CREOTECH = max(df_CREOTECH$date)
+df_CREOTECH_18 = df_CREOTECH[which(df_CREOTECH$date >= latest_date_CREOTECH %m-% months(18)),]
+
+latest_date_ENELMED = max(df_ENELMED$date)
+df_ENELMED_18 = df_ENELMED[which(df_ENELMED$date >= latest_date_ENELMED %m-% months(18)),]
+
+
+#plot(open_ch ~ date, df_KGHM, type = 'l', col = 'blue', xlab = 'Data', 
+ #    ylab = 'Procentowa zmiana kursu otwarcia [%]', main = 'KGHM')
+#grid()
+```
+Sporządzenie wykresów:
+
+- Wykresy procentowych zmian kursów zamknięcia w zależności od daty
+
+- Creotech
+```{r}
+# Stworzenie nowej kolumny z procentowymi zmianami
+df_CREOTECH_18$close_ch = with(df_CREOTECH_18, c(NA, 100*diff(close)/close[-length(close)]))
+
+# Wykres
+plot(close_ch ~ date, df_CREOTECH_18, type = 'l', col = '#DC143C', xlab = 'Data', 
+     ylab = 'Procentowa zmiana kursu zamknięcia [%]', main = 'CREOTECH', las = 1)
+grid()
+```
+
+
+- Enelmed
+```{r}
+# Stworzenie nowej kolumny z procentowymi zmianami
+df_ENELMED_18$close_ch = with(df_ENELMED_18, c(NA, 100*diff(close)/close[-length(close)]))
+
+# Wykres
+plot(close_ch ~ date, df_ENELMED_18, type = 'l', col = '#0A381F', xlab = 'Data', 
+     ylab = 'Procentowa zmiana kursu zamknięcia [%]', main = 'ENELMED', las = 1)
+grid()
+```
+
+Histogramy procentowych zmian kursów zamknięcia:
+
+- Creotech
+```{r}
+hist(df_CREOTECH_18$close_ch, breaks = 20, prob = T,
+  xlab = 'Zmiana kursu zamknięcia [%] ',
+  ylab = 'Częstość występowania',
+  xlim = c(-10, 15),
+  main = paste('Histogram procentowych zmian kursu', 'CREOTECH'), col = '#DC143C')
+grid()
+```
+
+- Enelmed
+```{r}
+hist(df_ENELMED_18$close_ch, breaks = 20, prob = T,
+  xlab = 'Zmiana kursu zamknięcia [%] ',
+  ylab = 'Częstość występowania',
+  main = paste('Histogram procentowych zmian kursu', 'ENELMED'), col = '#0A381F', right = T)
+grid()
+```
+
+Porównując histogramy można zauważyć, że kurs zamknięcia spółki ENELMED jest dużo bardziej stabilny niż w przypadku CREOTECH.
+Zmiany kursu zamknięcia w ponad 60% przypadków nie przekraczają jednego procenta, w przypadku CREOTECH jest to niecałe 30%.
+
+Wykresy pudełkowe zmian kursów zamknięcia:
+
+```{r}
+# Stworzenie nowej tabeli w celu wykonania wykresów:
+
+# Uwaga - ze względu na nierówną ilość wierszy uzupełniono krótszą kolumnę wartościami "NA".
+
+
+df_temp = data.frame(df_CREOTECH_18$close_ch, 
+                     c(df_ENELMED_18$close_ch, 
+                       rep(NA, length(df_CREOTECH_18$close_ch) - length(df_ENELMED_18$close_ch))))
+boxplot(df_temp, col = c('#DC143C', '#0A381F'), 
+  ylab = 'Zmiana kursu zamknięcia [%] ',
+  main = 'Wykresy pudełkowe zmian kursów zamknięcia',
+  las = 1,
+  names = c('CREOTECH', 'ENELMED')
+  )
+grid()
+```
+Osobliwy kształt wykresu pudełkowego dla spółki ENELMED wynika z faktu, że dominanta - wynik 0,0 jest wynikiem zdecydowanie
+przeważającym (156 z 281 obserwacji). W związku z tym jest ona zarówno medianą, jak i kwartylami - dolnym i górnym. Z tego powodu pudełko ma zerową wysokość, a wąsy nie występują.
+Wykres pudełkowy więc nie wydaje się właściwy do przedstawienia wartości dla spółki ENELMED.
+
+***
+
+# Zadanie 2 (1,5 pkt)
+
+## Treść zadania
+
+1. Sporządź wykres liczby katastrof lotniczych w poszczególnych:
+
+* miesiącach roku (styczeń - grudzień),
+
+* dniach miesiąca (1-31),
+
+* dniach tygodnia (weekdays()).
+
+2. Narysuj jak w kolejnych latach zmieniały się:
+
+* liczba osób, które przeżyły katastrofy,
+
+* odsetek osób (w procentach), które przeżyły katastrofy.
+
+## Rozwiązanie
+
+Wczytanie danych:
+
+```{r}
+kat = read.csv('crashes.csv')
+```
+
+2.1. Wykresy ilości katastrof:
+
+Zamiana kolumny date na format klasy Date:
+```{r}
+kat$Date = as.Date(kat$Date, format = "%m/%d/%Y")
+```
+
+Wykres liczby katastrof w poszczególnych miesiącach:
+
+```{r}
+plot(table(format.Date(kat$Date, "%m")), xlab = 'Miesiąc', ylab = 'Liczba katastrof',
+     main = 'Liczba katastrof w poszczególnych miesiącach', col = 'brown2')
+grid()
+```
+Wykres liczby katastrof w poszczególnych dniach miesiąca:
+
+```{r}
+plot(table(format.Date(kat$Date, "%d")), xlab = 'Dzień miesiąca', ylab = 'Liczba katastrof',
+     main = 'Liczba katastrof w poszczególnych dniach miesiąca', col = 'gold2')
+grid()
+```
+Wykres liczby katastrof w poszczególnych dniach tygodnia:
+
+```{r}
+poziomy = c("poniedziałek", "wtorek", "środa", "czwartek", "piątek", "sobota", "niedziela")
+
+plot(table(factor(weekdays(kat$Date), levels = poziomy)), xlab = 'Dzień tygodnia', 
+     ylab = 'Liczba katastrof',
+     main = 'Liczba katastrof w poszczególnych dniach tygodnia', col = 'purple3', lwd = 4)
+grid()
+```
+
+
+2.2.
+
+  * Agregacja danych po latach:
+```{r}
+
+kat$Year = strftime(as.Date(kat$Date, '%m/%d/%Y'), '%Y')
+kat_agr = aggregate(cbind(Aboard, Fatalities) ~ Year, kat, FUN = sum)
+#Dodanie kolumny z ocalałymi:
+kat_agr$Survivors = kat_agr$Aboard - kat_agr$Fatalities
+
+#Dodanie kolumny z odsetkiem ocalałych:
+kat_agr$SurvivalRate = ((kat_agr$Aboard - kat_agr$Fatalities) * 100 / kat_agr$Aboard) 
+```
+
+- Przedstawienie liczby osób, które przeżyły katastrofy w kolejnych latach:
+```{r}
+plot(Survivors ~ Year, data = kat_agr, type = 'h', col = 'blue',xlab = 'Rok', 
+     ylab = 'Lczba ocalałych', main = 'Liczba ocalałych z katastrof w poszczególnych latach' )
+grid()
+```  
+- Przedstawienie odsetków osób (w procentach), które przeżyły katastrofy w kolejnych latach:
+
+```{r}
+plot(SurvivalRate ~ Year, data = kat_agr, type = 'h', col = 'darkgreen',xlab = 'Rok', 
+     ylab = 'Ocalali [%]', main = 'Odsetek ocalałych z katastrof w poszczególnych latach', las = 1)
+grid()
+```  
+***
+
+
+# Zadanie 3 (1 pkt)
+
+## Treść zadania
+
+1. Dla dwóch różnych zestawów parametrów rozkładu dwumianowego (rbinom):
+
+* Binom(20,0.2)
+
+* Binom(20,0.8)
+
+wygeneruj próby losowe składające się z M = 1000 próbek i narysuj wartości wygenerowanych danych.
+
+2. Dla obu rozkładów narysuj na jednym rysunku empiryczne i teoretyczne (użyj funkcji dbinom) funkcje prawdopodobieństwa, a na drugim rysunku empiryczne i teoretyczne (użyj funkcji pbinom) dystrybuanty. W obu przypadkach wyskaluj oś odciętych od 0 do 20.
+
+## Rozwiązanie
+
+3.1
+
+* Generacja próby o parametrach Binom(20, 0,2):
+
+```{r}
+proba1 = rbinom(1000, 20, 0.2)
+plot(proba1, col = 'red4', xlab = 'Próbka', ylab = 'Wartość próbki',
+main = 'Rozkład dwumianowy, n = 20, p = 0,2')
+```  
+Funkcje prawdopodobieństwa:
+
+```{r}
+plot(table(proba1) / 1000, col = 'red3', type = 'p', main = 'Funkcje prawdopodobieństwa', 
+     xlab = 'x', ylab = 'f(x)',
+     pch = 4, lwd = 1, panelfirst = grid(lty = 3, col = 'grey'), las = 1, xlim = c(0, 20), xaxt = "n")
+points(0:20, dbinom(c(0:20), 20, 0.2), col = 'blue4', lwd = 1, pch = 3)
+axis(1, at = c(0:20))
+legend('topright', c('empiryczna', 'teoretyczna'), col = c('red3', 'blue4'), pch = c(4, 3))
+```  
+Dystrybuanty:
+
+```{r}
+plot(ecdf(proba1), col = 'red3', main = 'Dystrybuanty', xlab = 'x', ylab = 'F(x)',
+     lwd = 1, panelfirst = grid(lty = 3, col = 'grey'), las = 1, xlim = c(0, 20))
+points(0:20, pbinom(c(0:20), 20, 0.2), col = 'blue4', lwd = 1, pch = 18)
+segments(0:20, pbinom(c(0:20), 20, 0.2), 1:21, pbinom(c(0:20), 20, 0.2), col = "blue4")
+axis(1, at = c(0:20))
+legend('bottomright', c('empiryczna', 'teoretyczna'), col = c('red3', 'blue4'), 
+       pch = c(16, 18), lwd = 1)
+```
+* Generacja próby o parametrach Binom(20, 0,8):
+
+```{r}
+proba2 = rbinom(1000, 20, 0.8)
+plot(proba2, col = 'darkgreen', xlab = 'Próbka', ylab = 'Wartość próbki',
+main = 'Rozkład dwumianowy, n = 20, p = 0,8')
+```  
+Funkcje prawdopodobieństwa:
+
+```{r}
+plot(table(proba2) / 1000, col = 'red3', type = 'p', main = 'Funkcje prawdopodobieństwa', 
+     xlab = 'x', ylab = 'f(x)',
+     pch = 4, lwd = 1, panelfirst = grid(lty = 3, col = 'grey'), las = 1, xlim = c(0, 20), xaxt = "n")
+points(0:20, dbinom(c(0:20), 20, 0.8), col = 'blue4', lwd = 1, pch = 3)
+axis(1, at = c(0:20))
+legend('topleft', c('empiryczna', 'teoretyczna'), col = c('red3', 'blue4'), pch = c(4, 3))
+```  
+Dystrybuanty:
+
+```{r}
+plot(ecdf(proba2), col = 'red3', main = 'Dystrybuanty', xlab = 'x', ylab = 'F(x)',
+     lwd = 1, panelfirst = grid(lty = 3, col = 'grey'), las = 1, xlim = c(0, 20))
+points(0:20, pbinom(c(0:20), 20, 0.8), col = 'blue4', lwd = 1, pch = 18)
+segments(0:20, pbinom(c(0:20), 20, 0.8), 1:21, pbinom(c(0:20), 20, 0.8), col = "blue4")
+axis(1, at = c(0:20))
+legend('bottomright', c('empiryczna', 'teoretyczna'), col = c('red3', 'blue4'), 
+       pch = c(16, 18), lwd = 1)
+```
+
+
+***
+
+# Zadanie 4 (1,5 pkt)
+
+## Treść zadania
+
+1. Dla rozkładu dwumianowego Binom(20, 0.2) wygeneruj trzy próby losowe składające się z M = 100, 1000 i 10000 próbek. 
+
+2. Dla poszczególnych prób wykreśl empiryczne i teoretyczne funkcje prawdopodobieństwa, a także empiryczne i teoretyczne dystrybuanty. 
+
+3. We wszystkich przypadkach oblicz empiryczne wartości średnie i wariancje. Porównaj je ze sobą oraz z wartościami teoretycznymi dla rozkładu Binom(20, 0.2).
+
+## Rozwiązanie
+
+4.1 
+
+Utworzenie prób losowych:
+
+```{r}
+proba_100 = rbinom(100, 20, 0.2)
+proba_1000 = rbinom(1000, 20, 0.2)
+proba_10000 = rbinom(10000, 20, 0.2)
+```  
+
+
+4.2 
+
+Dla próby składającej się ze 100 próbek:
+
+```{r}
+
+plot(table(proba_100) / 100, col = 'red3', type = 'p', 
+     main = 'Funkcje prawdopodobieństwa dla M = 100', xlab = 'x', ylab = 'f(x)',
+     pch = 4, lwd = 1, panelfirst = grid(lty = 3, col = 'grey'), las = 1, xlim = c(0, 20), xaxt = "n")
+points(0:20, dbinom(c(0:20), 20, 0.2), col = 'blue4', lwd = 1, pch = 3)
+axis(1, at = c(0:20))
+legend('topright', c('empiryczna', 'teoretyczna'), col = c('red3', 'blue4'), pch = c(4, 3))
+```  
+```{r}
+plot(ecdf(proba_100), col = 'red3', main = 'Dystrybuanty (M = 100)', xlab = 'x', ylab = 'F(x)',
+     lwd = 1, panelfirst = grid(lty = 3, col = 'grey'), las = 1, xlim = c(0, 20))
+points(0:20, pbinom(c(0:20), 20, 0.2), col = 'blue4', lwd = 1, pch = 18)
+segments(0:20, pbinom(c(0:20), 20, 0.2), 1:21, pbinom(c(0:20), 20, 0.2), col = "blue4")
+axis(1, at = c(0:20))
+legend('bottomright', c('empiryczna', 'teoretyczna'), col = c('red3', 'blue4'), 
+       pch = c(16, 18), lwd = 1)
+```
+Dla próby składającej się z 1000 próbek:
+
+```{r}
+
+plot(table(proba_1000) / 1000, col = 'red3', type = 'p', 
+     main = 'Funkcje prawdopodobieństwa dla M = 1000', xlab = 'x', ylab = 'f(x)',
+     pch = 4, lwd = 1, panelfirst = grid(lty = 3, col = 'grey'), las = 1, 
+     xlim = c(0, 20), ylim = c(0, 0.25), xaxt = "n")
+points(0:20, dbinom(c(0:20), 20, 0.2), col = 'blue4', lwd = 1, pch = 3)
+axis(1, at = c(0:20))
+legend('topright', c('empiryczna', 'teoretyczna'), col = c('red3', 'blue4'), 
+       pch = c(4, 3))
+```  
+
+
+
+```{r}
+plot(ecdf(proba_1000), col = 'red3', main = 'Dystrybuanty (M = 1000)', xlab = 'x', ylab = 'F(x)',
+     lwd = 1, panelfirst = grid(lty = 3, col = 'grey'), las = 1, xlim = c(0, 20))
+points(0:20, pbinom(c(0:20), 20, 0.2), col = 'blue4', lwd = 1, pch = 18)
+segments(0:20, pbinom(c(0:20), 20, 0.2), 1:21, pbinom(c(0:20), 20, 0.2), col = "blue4")
+axis(1, at = c(0:20))
+legend('bottomright', c('empiryczna', 'teoretyczna'), col = c('red3', 'blue4'), 
+       pch = c(16, 18), lwd = 1)
+```
+Dla próby składającej się z 10 000 próbek:
+
+```{r}
+
+plot(table(proba_10000) / 10000, col = 'red3', type = 'p', 
+     main = 'Funkcje prawdopodobieństwa dla M = 10 000', xlab = 'x', ylab = 'f(x)',
+     pch = 4, lwd = 1, panelfirst = grid(lty = 3, col = 'grey'), las = 1, 
+     xlim = c(0, 20), ylim = c(0, 0.25), xaxt = "n")
+points(0:20, dbinom(c(0:20), 20, 0.2), col = 'blue4', lwd = 1, pch = 3)
+axis(1, at = c(0:20))
+legend('topleft', c('empiryczna', 'teoretyczna'), col = c('red3', 'blue4'), pch = c(4, 3))
+```  
+
+
+```{r}
+plot(ecdf(proba_10000), col = 'red3', main = 'Dystrybuanty (M = 10 000)', xlab = 'x', ylab = 'F(x)',
+     lwd = 1, panelfirst = grid(lty = 3, col = 'grey'), las = 1, xlim = c(0, 20))
+points(0:20, pbinom(c(0:20), 20, 0.2), col = 'blue4', lwd = 1, pch = 18)
+segments(0:20, pbinom(c(0:20), 20, 0.2), 1:21, pbinom(c(0:20), 20, 0.2), col = "blue4")
+axis(1, at = c(0:20))
+legend('bottomright', c('empiryczna', 'teoretyczna'), col = c('red3', 'blue4'), pch = c(16, 18), lwd = 1)
+```
+4.3
+
+Wyznaczenie wartości średnich i wariancji:
+
+
+```{r}
+n = 20; p = 0.2
+m_100 = mean(proba_100); var_100 = var(proba_100)
+m_1000 = mean(proba_1000); var_1000 = var(proba_1000)
+m_10000 = mean(proba_10000); var_10000 = var(proba_10000)
+m_teor = n * p; var_teor = n * p * (1 - p)
+```
+
+Otrzymane wyniki: 
+
+ - Dla M = 100: średnia `r round(m_100, 3)`, wariancja `r round(var_100, 3)`
+ - Dla M = 1000: średnia `r round(m_1000, 3)`, wariancja `r round(var_1000, 3)` 
+ - Dla M = 10 000: średnia `r round(m_10000, 3)`, wariancja `r round(var_10000, 3)` 
+ - Wartości teoretyczne: średnia `r round(m_teor, 3)`, wariancja `r round(var_teor, 3)`
+ 
+Wyniki wraz z porównaniem wartości empirycznych do teoretycznych zestawiono poniżej:
+
+```{r}
+
+df_summary = data.frame(Rozkład = c("Empiryczny, 100 pr.", "Empiryczny, 1000 pr.", 
+                                    "Empiryczny, 10 000 pr.", "Teoretyczny"), 
+                        Średnia = c(m_100, m_1000, m_10000, m_teor), 
+                        Wariancja = round(c(var_100, var_1000, var_10000, var_teor), 3)) 
+                          
+df_summary$"Różn. śr. [%]" = 
+  abs(((df_summary$Średnia - df_summary$Średnia[4]) * 100) / df_summary$Średnia[4])
+df_summary$"Różn. war. [%]" = 
+  round(abs(((df_summary$Wariancja - df_summary$Wariancja[4]) * 100) / df_summary$Wariancja[4]), 3)
+
+print(df_summary, right = F, row.names = F)
+               
+```
+ 
+ W tabeli pokazano procentowe róznice procentowe pomiędzy wartościami empirycznymi i teoretycznymi.
+
+ 
