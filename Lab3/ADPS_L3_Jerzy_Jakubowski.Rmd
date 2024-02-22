@@ -51,6 +51,67 @@ Wartości wyniosły: \
 dla mężczyzn - $\hat\mu$ = `r est_mT_M`, $\hat\sigma$ = `r est_sT_M`\
 dla kobiet - $\hat\mu$ = `r est_mT_K`, $\hat\sigma$ = `r est_sT_K`  
 
+Weryfikacja hipotezy przy użyciu funkcji t.test():
+
+- Mężczyźni:
+```{r}
+mi_0 = 36.6
+# Wartość poziomu istotności 0,05 jest wartością domyślną 
+t.test(subset(data, płeć == 1)$temperatura, mu = mi_0) 
+```
+- Kobiety:
+```{r}
+t.test(subset(data, płeć == 2)$temperatura, mu = mi_0) 
+```
+
+Dla obydwu płci otrzymane p-wartość wskazują na niewielkie prawdopodobieństwo prawdziwości hipotezy,\
+że wartość 36,6 $^\circ$C jest rzeczywistą średnią próby. Hipotezy zerowe należy odrzucić. \
+W przypadku kobiet przesłanki do odrzucenia hipotezy zerowej są szczególnie mocne ze względu na \
+ekstremalnie niską p-wartość.
+
+Testy normalności:
+
+W celach poglądowych narysowano histogramy obserwacji temperatury ciała:
+
+```{r}
+hist(subset(data, płeć == 1)$temperatura, breaks = 20, main = "Temperatura ciała, mężczyźni",
+     col = "lightblue4", xlim = c(35.5, 37.5), xlab = expression(paste("Temperatura, ", degree, "C")),
+     ylab = "Częstość")
+```
+```{r}
+hist(subset(data, płeć == 2)$temperatura, breaks = 20, main = "Temperatura ciała, kobiety",
+     col = "pink4", xlim = c(35.5, 37.5), xlab = expression(paste("Temperatura, ", degree, "C")),
+     ylab = "Częstość")
+```
+
+Przeprowadzenie testów Lilliefors, Andersona-Darlinga, Szapiro-Wilka:
+
+- Mężczyżni:
+```{r}
+library(nortest)
+lillie.test(subset(data, płeć == 1)$temperatura)
+```
+```{r}
+ad.test(subset(data, płeć == 1)$temperatura)
+```
+```{r}
+shapiro.test(subset(data, płeć == 1)$temperatura)
+```
+- Kobiety:
+```{r}
+lillie.test(subset(data, płeć == 2)$temperatura)
+```
+```{r}
+ad.test(subset(data, płeć == 2)$temperatura)
+```
+```{r}
+shapiro.test(subset(data, płeć == 2)$temperatura)
+```
+Przeprowadzone testy sugerują, iż:
+- w przypadku mężczyzn nie można odrzucić hipotezy, że temperatura ciała ma rozkład normalny.
+- W przypadku kobiet istnieją silne przesłanki sugerujące, że temperatura ciała nie ma rozkładu \
+normalnego - hipotezę o normalności należy odrzucić.
+
 ***
 
 # Zadanie 2 (1 pkt)
@@ -78,7 +139,48 @@ Zweryfikuj przy poziomie istotności $\alpha = 0.05$ czy zamieszczone w niej dan
 
 ## Rozwiązanie
 
-Tu umieść swoje rozwiązanie
+Przekształcenia danych i wprowadzenie ich do tabeli:
+
+```{r}
+data2_string = "| Styczeń     | 1867              | 31         |
+| Luty        | 1789              | 28         |
+| Marzec      | 1944              | 31         |
+| Kwiecień    | 2094              | 30         |
+| Maj         | 2097              | 31         |
+| Czerwiec    | 1981              | 30         |
+| Lipiec      | 1887              | 31         |
+| Sierpień    | 2024              | 31         |
+| Wrzesień    | 1928              | 30         |
+| Październik | 2032              | 31         |
+| Listopad    | 1978              | 30         |
+| Grudzień    | 1859              | 31         |"
+
+data2_list <- strsplit(data2_string, "|", fixed = T)
+data2_vector = data2_list[[1]]
+data2_vector <- sapply(data2_list, trimws)
+data2_matrix = matrix(data2_vector, ncol = 4, byrow = T)
+data2_matrix <- data2_matrix[, -1]
+data2_df = data.frame(data2_matrix)
+data2_df[, 2:3] <- lapply(data2_df[, 2:3], as.numeric)
+colnames(data2_df) = c("Miesiąc", "Liczba samobójstw", "Liczba dni")
+```
+
+Do tabeli dodano kolumnę obliczjącą średnią liczbę samobójstw dziennie:
+```{r}
+data2_df$"Samobójstwa/dzień" = data2_df$`Liczba samobójstw` / data2_df$`Liczba dni`
+```
+
+Otrzymana tabela z danymi:
+
+```{r}
+data2_df
+```
+
+Dane przedstawiono na wykresie:
+
+```{r}
+barplot(data2_df$`Samobójstwa/dzień` ~ data2_df$Miesiąc, ylim = c(0, 70))
+```
 
 ***
 
