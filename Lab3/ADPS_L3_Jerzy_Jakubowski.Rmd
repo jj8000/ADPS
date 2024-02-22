@@ -110,7 +110,7 @@ shapiro.test(subset(data, płeć == 2)$temperatura)
 Przeprowadzone testy sugerują, iż:
 - w przypadku mężczyzn nie można odrzucić hipotezy, że temperatura ciała ma rozkład normalny.
 - W przypadku kobiet istnieją silne przesłanki sugerujące, że temperatura ciała nie ma rozkładu \
-normalnego - hipotezę o normalności należy odrzucić.
+normalnego - hipotezę (zerową) o normalności należy odrzucić.
 
 ***
 
@@ -176,10 +176,9 @@ Otrzymana tabela z danymi:
 data2_df
 ```
 
-Dane przedstawiono na wykresie:
-
 ```{r}
-barplot(data2_df$`Samobójstwa/dzień` ~ data2_df$Miesiąc, ylim = c(0, 70))
+barplot(data2_df$`Samobójstwa/dzień`, names.arg = data2_df$Miesiąc, horiz = T, las = 1,
+        xlim = c(0, 70), col = "coral", main = "Średnia dzienna liczba samobójstw")
 ```
 
 ***
