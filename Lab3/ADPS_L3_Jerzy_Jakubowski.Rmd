@@ -69,6 +69,8 @@ Dla obydwu płci otrzymane p-wartość wskazują na niewielkie prawdopodobieńst
 W przypadku kobiet przesłanki do odrzucenia hipotezy zerowej są szczególnie mocne ze względu na \
 ekstremalnie niską p-wartość.
 
+
+
 Testy normalności:
 
 W celach poglądowych narysowano histogramy obserwacji temperatury ciała:
@@ -108,7 +110,7 @@ ad.test(subset(data, płeć == 2)$temperatura)
 shapiro.test(subset(data, płeć == 2)$temperatura)
 ```
 Przeprowadzone testy sugerują, iż:
-- w przypadku mężczyzn nie można odrzucić hipotezy, że temperatura ciała ma rozkład normalny.
+- w przypadku mężczyzn nie można odrzucić hipotezy, że temperatura ciała ma rozkład normalny.\
 - W przypadku kobiet istnieją silne przesłanki sugerujące, że temperatura ciała nie ma rozkładu \
 normalnego - hipotezę (zerową) o normalności należy odrzucić.
 
@@ -176,11 +178,33 @@ Otrzymana tabela z danymi:
 data2_df
 ```
 
+W celach poglądowych narysowano wykres średniej dziennej liczby samobójstw w \
+każdym miesiącu:
 ```{r}
 barplot(data2_df$`Samobójstwa/dzień`, names.arg = data2_df$Miesiąc, horiz = T, las = 1,
         xlim = c(0, 70), col = "coral", main = "Średnia dzienna liczba samobójstw")
 ```
 
+Sprawdzenie sezonowości zjawiska:
+
+Przyjęto hipotezę zerową - brak sezonowości zjawiska, wobec alternatywnej - zjawisko \
+charakteryzuje sezonowość.
+
+W przypadku braku sezonowości, prawdopodobieństwo wystąpienia samobójstwa w danym \
+miesiącu powinno być proporcjonalne do długości miesiąca.
+```{r}
+ni_i = data2_df$`Liczba samobójstw`
+p_i = data2_df$`Liczba dni` / sum(data2_df$`Liczba dni`)
+```
+
+Przeprowadzenie testu $\chi^2$: 
+
+```{r}
+chisq.test(ni_i, p = p_i) 
+```
+Otrzymano znikomą p-wartość. Hipotezę zerową (mówiącą o zgodności rozkładu obserwacji\
+z założonymi prawdopodobieństwami) należy odrzucić, na podstawie czego \
+można stwierdzić, że zjawisko samobójstw wykazuje się sezonowością.
 ***
 
 # Zadanie 3 (1 pkt)
@@ -195,7 +219,105 @@ Dla wybranej spółki notowanej na GPW wczytaj dane ze strony bossa.pl
 
 ## Rozwiązanie
 
-Tu umieść swoje rozwiązanie
+Przygotowanie danych
+```{r}
+unzip('mstall.zip', files = 'LENTEX.mst')
+df_LENTEX = read.csv('LENTEX.mst')
+
+names(df_LENTEX) = c('ticker', 'date', 'open', 'high', 'low', 'close','vol')
+df_LENTEX$date = as.Date.character(df_LENTEX$date, format ='%Y%m%d')
+```
+
+Ograniczenie do danych z dwunastu miesięcy od ostatniej dostępnej daty:
+
+```{r, warning=FALSE}
+library(lubridate)
+latest_date_LENTEX = max(df_LENTEX$date)
+df_LENTEX = df_LENTEX[which(df_LENTEX$date >= latest_date_LENTEX %m-% months(12)),]
+```
+
+Dodanie kolumny z procentowymi zmianami najniższego kursu dziennego:
+
+```{r}
+df_LENTEX$low_diff = with(df_LENTEX, c(NA, 100*diff(low)/low[-length(low)]))
+```
+
+Utworzenie histogramu (przedziały półprocentowe):
+
+```{r}
+hist(df_LENTEX$low_diff,
+breaks = 20, prob = F,
+xlab = 'Zmiana najniższego kursu dziennego [%] ',
+ylab = 'Częstość występowania',
+xlim = c(-5, 10),
+main = paste('Histogram procentowych zmian kursu', 'LENTEX'), col = 'brown1',
+las = 1, xaxp = c(-5, 10, 15))
+grid()
+```
+
+Estymacja średniej i wariancji rozkładu:
+
+```{r}
+est_mean = mean(df_LENTEX$low_diff, na.rm = TRUE)
+est_var = var(df_LENTEX$low_diff, na.rm = TRUE)
+```
+
+Wyznaczenie funkcji gęstości prawdopodobieństwa dla wyestymowanych parametrów:
+
+```{r}
+x = seq(min(df_LENTEX$low_diff, na.rm = T), 
+                        max(df_LENTEX$low_diff, na.rm = T), by = 0.1)
+f_norm_teor = dnorm(x, mean = est_mean, sd = sqrt(est_var))
+```
+
+Porównanie wykresów:
+
+```{r}
+hist(df_LENTEX$low_diff,
+breaks = 20, prob = T,
+xlab = 'x',
+ylab = 'f(x)',
+xlim = c(-5, 10),
+main = "Porównanie wykresów", col = 'brown1', 
+las = 1, xaxp = c(-5, 10, 15))
+
+lines(x, f_norm_teor, col = 'darkgreen', lwd = 2)
+legend("topright", legend = c("wartości empiryczne", "teoretyczna f. gęstości prawd."),
+              fill = c("brown1", "darkgreen"))
+grid()
+```
+Testy normalności:
+
+```{r}
+low_diff = df_LENTEX$low_diff[!is.na(df_LENTEX$low_diff)]
+```
+
+- Lilliefors (zamiast Kołmogorowa - Smirnowa, który pominięto ze względu na \
+powtarzanie się wartości w zbiorze danych):
+```{r}
+lillie.test(low_diff) 
+```
+- Szapiro - Wilka:
+```{r}
+shapiro.test(low_diff) 
+```
+- Anscombe'a:
+```{r}
+library(moments)
+anscombe.test(low_diff) 
+```
+- d'Agostino:
+```{r}
+agostino.test(low_diff) 
+```
+- Jarque-Bera:
+```{r}
+jarque.test(low_diff) 
+```
+Za wyjątkiem testu d'Agostino, wszystkie przeprowadzone testy wskazują na odrzucenie\
+hipotezy zerowej - wobec czego procentowe zmiany najniższych cen w poszczególnych \
+dniach w ciągu ostatniego roku nie mają rozkładu normalnego.
+
 
 ***
 
@@ -205,7 +327,7 @@ Tu umieść swoje rozwiązanie
 
 W pliku lozyska.txt podane są czasy (w milionach cykli) pracy (do momentu uszkodzenia) łożysk wykonywanych z dwóch różnych materiałów.
 
-* Przeprowadź test braku różnicy między czasami pracy łożysk wykonanych z różnych materiałów, zakładając że czas pracy do momentu uszkodzenia opisuje się rozkładem normalnym, bez zakładania róności wariancji. Przyjmij poziom istotności $\alpha = 0.05$.
+* Przeprowadź test braku różnicy między czasami pracy łożysk wykonanych z różnych materiałów, zakładając że czas pracy do momentu uszkodzenia opisuje się rozkładem normalnym, bez zakładania równości wariancji. Przyjmij poziom istotności $\alpha = 0.05$.
 
 * Przeprowadź analogiczny test, bez zakładania normalności rozkładów.
 
@@ -213,8 +335,28 @@ W pliku lozyska.txt podane są czasy (w milionach cykli) pracy (do momentu uszko
 
 ## Rozwiązanie
 
-Tu umieść swoje rozwiązanie
+Wczytanie danych:
+```{r}
+fatigue_data = read.csv('lozyska.txt')
+```
 
+Przy założeniu normalności rozkładów, do porównania czasów pracy należy porównać \
+wartości średnie. Przeprowadzono test $t$:
+```{r}
+t.test(fatigue_data$X.Typ.I., fatigue_data$X.Typ.II.)
+```
+Otrzymana p-wartość równa $0,05408$ pozwala podtrzymać hipotezę zerową o braku różnicy\
+w średnich. Należy jednak zwrócić uwagę, że wartość ta jest nieznacznie większa od\
+przyjętego poziomu istotności $\alpha = 0.05$ - w połączeniu z faktem, że ilość danych\
+jest bardzo niewielka (10 obserwacji), należałoby przeprowadzić dodatkowe badania.
+
+Bez zakładania normalności rozkładów - przeprowadzono test Manna-Whitneya:
+```{r}
+wilcox.test(fatigue_data$X.Typ.I., fatigue_data$X.Typ.II.)
+```
+Podobnie jak poprzednio, p-wartość jest nieznacznie większa od przyjętego poziomu istotności.\
+Podtrzymana zostaje hipoteza zerowa (zmienne pochodzą z tego samego rozkładu), jednak\
+należy zwrócić uwagę na niewielką liczbę danych.
 ***
 
 # Zadanie 5 (1 pkt)
