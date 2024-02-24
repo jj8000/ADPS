@@ -2,10 +2,10 @@
 title: "ADPS 2023Z --- Laboratorium 3 (rozwiązania)"
 author: Jerzy Jakubowski
 output:
-  html_notebook: default
-  html_document: default
   pdf_document: 
     latex_engine: xelatex
+  html_document: default
+  html_notebook: default
 ---
 
 ```{r, echo=FALSE}
@@ -109,9 +109,9 @@ ad.test(subset(data, płeć == 2)$temperatura)
 ```{r}
 shapiro.test(subset(data, płeć == 2)$temperatura)
 ```
-Przeprowadzone testy sugerują, iż:
+Przeprowadzone testy sugerują, iż:\
 - w przypadku mężczyzn nie można odrzucić hipotezy, że temperatura ciała ma rozkład normalny.\
-- W przypadku kobiet istnieją silne przesłanki sugerujące, że temperatura ciała nie ma rozkładu \
+- w przypadku kobiet istnieją silne przesłanki sugerujące, że temperatura ciała nie ma rozkładu \
 normalnego - hipotezę (zerową) o normalności należy odrzucić.
 
 ***
@@ -205,6 +205,8 @@ chisq.test(ni_i, p = p_i)
 Otrzymano znikomą p-wartość. Hipotezę zerową (mówiącą o zgodności rozkładu obserwacji\
 z założonymi prawdopodobieństwami) należy odrzucić, na podstawie czego \
 można stwierdzić, że zjawisko samobójstw wykazuje się sezonowością.
+
+
 ***
 
 # Zadanie 3 (1 pkt)
@@ -219,7 +221,7 @@ Dla wybranej spółki notowanej na GPW wczytaj dane ze strony bossa.pl
 
 ## Rozwiązanie
 
-Przygotowanie danych
+Przygotowanie danych dla spółki LENTEX:
 ```{r}
 unzip('mstall.zip', files = 'LENTEX.mst')
 df_LENTEX = read.csv('LENTEX.mst')
@@ -286,6 +288,7 @@ legend("topright", legend = c("wartości empiryczne", "teoretyczna f. gęstości
               fill = c("brown1", "darkgreen"))
 grid()
 ```
+
 Testy normalności:
 
 ```{r}
@@ -356,7 +359,8 @@ wilcox.test(fatigue_data$X.Typ.I., fatigue_data$X.Typ.II.)
 ```
 Podobnie jak poprzednio, p-wartość jest nieznacznie większa od przyjętego poziomu istotności.\
 Podtrzymana zostaje hipoteza zerowa (zmienne pochodzą z tego samego rozkładu), jednak\
-należy zwrócić uwagę na niewielką liczbę danych.
+należy zwrócić uwagę na niewielką liczbę dostępnych danych.
+
 ***
 
 # Zadanie 5 (1 pkt)
@@ -385,6 +389,28 @@ Korzystając z danych zawartych na stronie pl.fcstats.com zweryfikuj hipotezę o
 
 ## Rozwiązanie
 
-Tu umieść swoje rozwiązanie
+Wprowadzenie danych: 
+
+W kolejności wprowadzono do list zwycięstwa gospodarzy, remisy, zwycięstwa gości, \
+następnie dane zestawiono w tabeli:
+```{r}
+bundesliga_dane = c(90, 53, 56)
+ekstraklasa_dane = c(79, 58, 51)
+premiership_dane = c(113, 51, 86)
+primeradivision_dane = c(107, 77, 67)
+
+df_football = as.data.frame(rbind(bundesliga_dane, ekstraklasa_dane, premiership_dane, 
+                                  primeradivision_dane))
+colnames(df_football) = c('1', 'X', '2')
+print(df_football)
+```
+
+W celu weryfikacji hipotezy o niezależności wyników od kraju, przeprowadzono test $\chi^2$:
+```{r}
+chisq.test(df_football)
+```
+Otrzymana p-wartość równa $0,1261$ pozwala przyjąć hipotezę zerową mówiącą, że dane\
+wierszowe są niezależne od kolumnowych - czyli wyniki spotkań piłkarskich są niezależne\
+od ligi, w której są rozgrywane.
 
 ***
